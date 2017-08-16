@@ -6,7 +6,9 @@ public class CameraController : MonoBehaviour
 {
 	void Update()
 	{
-		GameObject go_mainCharacter = CharacterController.Instance.go_mainCharacter;
+		// This code is not nice. not comfortable.
+		Character mainCharacter = WorldController.Instance.world.character;
+		GameObject go_mainCharacter = CharacterController.Instance.characterGoMap[mainCharacter];
 
         if (go_mainCharacter != null)
         {

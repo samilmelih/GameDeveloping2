@@ -4,103 +4,29 @@ using UnityEngine;
 
 public class EnemyController : MonoBehaviour
 {
-    public Dictionary<Character, GameObject> enemyGOMap;
-    public Dictionary<GameObject,Character > GOenemyMap;
-
-    World world;
-
-    public Transform[] spawnPos;
-
-    public static EnemyController Instance;
 
     // Use this for initialization
     void Start()
     {
-        Instance = this;
-        world = WorldController.Instance.world;
-        enemyGOMap = new Dictionary<Character, GameObject>();
-        GOenemyMap = new Dictionary<GameObject, Character>();
-
-
-        //Creates enemies with GO
-
-        CreateEnemies();
     }
 
     // FIXME: If we want to spawn enemies into scene at any time, we need a new approach.
-    void CreateEnemies()
-    {
-        int numberOfEnemy = 0;
-        foreach (Character enemy in world.enemies)
-        {
-            GameObject enemy_prefab = (GameObject)Resources.Load("Prefabs/Enemy");		// FIXME: This need to be change in the future.
-           
-            //TODO : burada bir transform list içince spawn positions belirlenecek
-            //bu posizsyonlar ne olursa olsun bu şekilde yapılabilir
-            GameObject enemy_go = (GameObject)Instantiate(enemy_prefab, spawnPos[numberOfEnemy],false);
-      
-            enemy_go.name = "Enemy_" + (++numberOfEnemy);
-            enemy_go.tag = "Enemy";
-
-            // FIXME: We need to randomize positions later. We can't instantiate
-            // enemies at the same position.
-
-            enemy_go.transform.SetParent(this.transform);
-
-            enemyGOMap.Add(enemy, enemy_go);
-            GOenemyMap.Add(enemy_go, enemy);
-        }
-
-    }
+    
 
     // Update is called once per frame
     void Update()
     {
-        // Not sure that we need to check these states in here,
-        // for now I couldn't find a better place.
-				
-        // Just check enemy states on every frame
-
-		// It's just a fix for "out of sync" exception of dictionary
-		// We can not remove key/values while iterating
-		List<Character> keys = new List<Character>(enemyGOMap.Keys);
-		foreach (Character enemy in keys)
-        {   
-            //Debug.DrawRay(enemy.Value.transform.position,new Vector3(Vector2.down.x,Vector2.down.y,0)*5,Color.red);
-
-            // If enemy's health is 0 or under 0 just Destroy it
-            // and remove from enemyGameObjectMap, and also from
-            // the world enemy list.
-			if (enemy.health <= 0)
-            {
-				enemyGOMap[enemy].SetActive(false);
-                enemy.isAlive = false;
-
-                // remove from the maps
-				GOenemyMap.Remove(enemyGOMap[enemy]);
-            	enemyGOMap.Remove(enemy);
-
-                // remove from the world
-                world.enemies.Remove(enemy);
-            }
-			// If enemy's health above 0, update states
-			else
-            {
-				// FIXME: Walk içinde sürekli Watch çağırıldığı için bu artık gereksiz mi?
-				// Emin olamadığım için comment olarak bırakıyorum.
-                // Watch(enemy);
-            }
-        }
+		
     }
 
-    void FixedUpdate()
-    {
-        // Update physical things
-        foreach (KeyValuePair<Character, GameObject> enemy in enemyGOMap)
-        {
-            Walk(enemy);
-        }
-    }
+	void FixedUpdate()
+	{
+		
+	}
+
+
+
+    
 
     void Walk(KeyValuePair<Character, GameObject> enemyGOPair)
     {
@@ -113,9 +39,7 @@ public class EnemyController : MonoBehaviour
 
         Character enemy = enemyGOPair.Key;
         GameObject enemy_go = enemyGOPair.Value;
-		 
-        Vector2 enemyPosition = new Vector2(enemy_go.transform.position.x , enemy_go.transform.position.y);
-       
+		        
 		GameObject go_mainCharacter = CharacterController.Instance.go_mainCharacter;
         Vector3 mainCharacterPosition;
         
@@ -189,10 +113,9 @@ public class EnemyController : MonoBehaviour
         
     }
 
-    EnemyImpact Watch(KeyValuePair<Character, GameObject> enemyGOPair)
+	EnemyImpact OnWatch(Character enemy)
     {
-        Character enemy = enemyGOPair.Key;
-        GameObject go = enemyGOPair.Value;
+		GameObject go_enemy = enemyGOMap[enemy];
 
         Vector2 direction;
 
@@ -204,38 +127,37 @@ public class EnemyController : MonoBehaviour
         else
             direction = Vector2.right;
 
-        Transform gunPosition = go.transform.Find("Gun");
+        Transform gunPosition = go_enemy.transform.Find("Gun");
 
+		// FIXME: Distance of the ray is hardcoded.
         RaycastHit2D hit = Physics2D.Raycast(gunPosition.position, direction, 10);
-        Debug.DrawRay(gunPosition.position,new Vector3(direction.x,direction.y,0) * 10 , Color.red);
+        
+		// Debug.DrawRay(gunPosition.position,new Vector3(direction.x,direction.y,0) * 10 , Color.red);
 
-        //Palyer dışında menzili düşürmemiz lazım küçük bir hesap yap
+        // Player dışında menzili düşürmemiz lazım küçük bir hesap yap
 
-        //duvar ile yada enemy ile arasında 10 birim mesafe olmasın 1 2 olsa yeter o yüzden tekrar bi pozisyon farkı al
+        // Duvar ile yada enemy ile arasında 10 birim mesafe olmasın 1 2 olsa yeter o yüzden tekrar bi pozisyon farkı al
         if (hit.collider != null && hit.collider.tag == "Player")
         {
-          
-            Fire(enemy, gunPosition);
+            Fire(enemy);
             return EnemyImpact.Player;
         }
 
-        if (hit.collider != null && hit.collider.tag == "Enemy"&& hit.distance < 1f)
-        {
-            
+		// FIXME: "hit.distance < 1f" is harcoded.
+        if (hit.collider != null && hit.collider.tag == "Enemy" && hit.distance < 1f)
+        {   
             return EnemyImpact.Enemy;
         }
 
-        if (hit.collider != null && hit.collider.tag == "Wall")
+		if (hit.collider != null && hit.collider.tag == "Wall" && hit.distance < 1f)
         {
-
             return EnemyImpact.Wall;
         }
-
        
         return EnemyImpact.None;
     }
 
-    void Fire(Character enemy, Transform gunPosition)
+    void Fire(Character enemy)
     {
         enemy.currentWeapon.cbAttack(enemy);
     }

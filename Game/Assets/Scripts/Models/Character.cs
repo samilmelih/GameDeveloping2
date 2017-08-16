@@ -35,10 +35,51 @@ public class Character
 	// For updating scale of our character
 	public Vector3 scale;
     
+
+	// old callbacks
 	Action<Character> cbOnAttack;
 	Action<Character> cbOnJump;
 	Action<Character> cbOnCrouch;
 	Action<Character> cbOnWalk;
+
+
+	// new callbacks
+	Action<Character> cbOnDestroyed;
+	Func<Character, bool> canCharacterJump;
+
+	World world;
+
+	public Character()
+	{
+		world = WorldController.Instance.world;
+	}
+
+	public void Update()
+	{
+		if (health <= 0)
+		{
+			if(cbOnDestroyed != null)
+				cbOnDestroyed(this);
+			
+			if(this.Type == "Main Character")
+			{
+				isAlive = false;
+			}
+			else if(this.Type == "Enemy")
+			{
+				world.enemies.Remove(this);
+			}
+		}
+	}
+
+	public void PhysicUpdates()
+	{
+		if(this.Type == "Enemy")
+			this.Walk(this.direction);
+	}
+
+
+
 
 	public void Attack()
 	{
@@ -65,21 +106,30 @@ public class Character
 			cbOnWalk(this);
 	}
 
+	// Cause of enemy characters are managed by CharacterAI, we don't have
+	// an axis info. We need to translate direction info to axis info.
+	public void Walk(Direction direction)
+	{
+		if(direction == Direction.Left)
+			Walk(-1f);
+		else
+			Walk(1f);
+	}
+
 	public void Jump()
 	{
-		velocity.y = speed.y;
-		if(cbOnJump != null)
-			cbOnJump(this);
+		if(canCharacterJump != null && canCharacterJump(this) == true)
+		{
+			velocity.y = speed.y;
+			if(cbOnJump != null)
+				cbOnJump(this);
+		}
 	}
 
 	public void Crouch()
 	{
 		
 	}
-
-
-
-
 
 	public void RegisterOnAttackCallback(Action<Character> cb)
 	{
@@ -101,23 +151,13 @@ public class Character
 		cbOnWalk += cb;
 	}
 
-	// FIXME: Bu yorumların bulunduğu konumda kodla ilişkilerini bulamadım. Eğer gereksizse silelim :D
+	public void RegisterOnDestroyedCallback(Action<Character> cb)
+	{
+		cbOnDestroyed += cb;
+	}
 
-	// Character parametresinde emin değilim. Biraz ileriye dönük düşündüm.
-
-	// Aslında şuan ihtiyaç yok. CC zaten bir referansa sahip.
-
-	// silahları dictionary içinde string to sprite şeklinde tutarak uygun silah sprite ını çekebiliriz
-
-	// public Vector2 characterDir=Vector2.right; 
-
-	// string spriteName="Player";		//we will get sprites with name from a controller (Which one??)
-
-
-	//TODO : Karakter envanter taşıayacak
-	//          aktif silah olacak
-	//          
-
-	//TODO : İlerleyen zamanda 2 yada 1 kullanılabilir büyü ekleyebiliriz 
-	//          zorluk seviyesine göre büyüler işini düünebiliriz
+	public void RegisterCanCharacterJumpCallback(Action<Character, bool> cb)
+	{
+		canCharacterJump += cb;
+	}
 }

@@ -39,7 +39,7 @@ public class BulletController : MonoBehaviour
 		}
 		else if(other.gameObject.tag == "Enemy" && go_shooter.tag != "Enemy")
 		{
-            EnemyController.Instance.GOenemyMap[other.gameObject].health -= bullet.damage;
+			CharacterController.Instance.GoCharacterMap[other.gameObject].health -= bullet.damage;
             Destroy(this.gameObject);
 		}
     }
